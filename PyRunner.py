@@ -1,6 +1,6 @@
 '''
     Author:PWND0U
-    Ver:1.0
+    Ver:1.1
 '''
 from tkinter import *
 import tkinter.filedialog
@@ -42,7 +42,8 @@ class Aipaoer(object):
         IMEICode = self.IMEICode
         url = "http://client3.aipao.me/api/%7Btoken%7D/QM_Users/Login_AndroidSchool?IMEICode={IMEICode}".format(
             IMEICode=IMEICode)
-        rsp = requests.get(url)
+        headers={"version":"2.40"}
+        rsp = requests.get(url,headers=headers)
         try:
             if rsp.json()["Success"]:
                 okJson = rsp.json()
@@ -54,7 +55,8 @@ class Aipaoer(object):
     def get_info(self):
         token = self.token
         url = "http://client3.aipao.me/api/{token}/QM_Users/GS".format(token=token)
-        rsp = requests.get(url)
+        headers={"version":"2.40"}
+        rsp = requests.get(url,headers=headers)
         try:
             if rsp.json()["Success"]:
                 okJson = rsp.json()
@@ -71,7 +73,8 @@ class Aipaoer(object):
         distance = self.distance
         url = "http://client3.aipao.me/api/{token}/QM_Runs/SRS?S1=40.62828&S2=120.79108&S3={distance}" \
             .format(token=token, distance=distance)
-        rsp = requests.get(url)
+        headers={"version":"2.40"}
+        rsp = requests.get(url,headers=headers)
         try:
             if rsp.json()["Success"]:
                 self.runId = rsp.json()["Data"]["RunId"]
