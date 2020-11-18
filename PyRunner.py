@@ -117,7 +117,7 @@ class Aipaoer(object):
                 # print(self.userName + ": 成功!")
         except KeyError:
             # Label(main_box, text=str(self.IMEICode + "：失败")).grid(row=rowIndex, column=0, columnspan=3)
-            value = ["成功!", self.userName, self.raceNum]
+            value = ["失败!", self.userName, self.raceNum]
             tree.insert("", "end", text=self.IMEICode, values=value)
             with open("失败.txt", "a+") as f:
                 f.write(self.IMEICode + "\n")
