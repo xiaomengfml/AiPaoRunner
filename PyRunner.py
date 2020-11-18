@@ -1,6 +1,6 @@
 '''
     Author:PWND0U
-    Ver:1.1
+    Ver:1.2
 '''
 from tkinter import *
 import tkinter.filedialog
@@ -34,6 +34,7 @@ class Aipaoer(object):
         self.minSpeed = 2.0
         self.maxSpeed = 3.0
         self.shixiao = False
+        self.raceNum = 0
 
     def __str__(self):
         return str(self.__dict__).replace("\'", "\"")
@@ -42,8 +43,8 @@ class Aipaoer(object):
         IMEICode = self.IMEICode
         url = "http://client3.aipao.me/api/%7Btoken%7D/QM_Users/Login_AndroidSchool?IMEICode={IMEICode}".format(
             IMEICode=IMEICode)
-        headers={"version":"2.40"}
-        rsp = requests.get(url,headers=headers)
+        headers = {"version": "2.40"}
+        rsp = requests.get(url, headers=headers)
         try:
             if rsp.json()["Success"]:
                 okJson = rsp.json()
@@ -55,8 +56,8 @@ class Aipaoer(object):
     def get_info(self):
         token = self.token
         url = "http://client3.aipao.me/api/{token}/QM_Users/GS".format(token=token)
-        headers={"version":"2.40"}
-        rsp = requests.get(url,headers=headers)
+        headers = {"version": "2.40"}
+        rsp = requests.get(url, headers=headers)
         try:
             if rsp.json()["Success"]:
                 okJson = rsp.json()
@@ -73,13 +74,25 @@ class Aipaoer(object):
         distance = self.distance
         url = "http://client3.aipao.me/api/{token}/QM_Runs/SRS?S1=40.62828&S2=120.79108&S3={distance}" \
             .format(token=token, distance=distance)
-        headers={"version":"2.40"}
-        rsp = requests.get(url,headers=headers)
+        rsp = requests.get(url)
         try:
             if rsp.json()["Success"]:
                 self.runId = rsp.json()["Data"]["RunId"]
         except KeyError:
             print("Unknown error in get_runId")
+
+    def get_RaceNum(self):
+        token = self.token
+        userId = self.userId
+        url = "http://client3.aipao.me/api/{token}/QM_Runs/getResultsofValidByUser?UserId={userId}&pageIndex=1&pageSize=10" \
+            .format(token=token, userId=userId)
+        headers = {"version": "2.40"}
+        rsp = requests.get(url, headers=headers)
+        try:
+            if rsp.json()["Success"]:
+                self.raceNum = rsp.json()["RaceNums"]
+        except KeyError:
+            pass
 
     def upload_record(self):
         my_speed = round(uniform(self.minSpeed + 0.3, self.maxSpeed - 0.5), 2)
@@ -99,16 +112,16 @@ class Aipaoer(object):
         try:
             if rsp.json()["Success"]:
                 # Label(main_box, text=str(self.IMEICode+"：" + self.userName+"：" + "成功!")).grid(row=rowIndex, column=0, columnspan=3)
-                value = ["成功!",self.userName]
+                value = ["成功!", self.userName, self.raceNum]
                 tree.insert("", "end", text=self.IMEICode, values=value)
-                print(self.userName + ": 成功!")
+                # print(self.userName + ": 成功!")
         except KeyError:
             # Label(main_box, text=str(self.IMEICode + "：失败")).grid(row=rowIndex, column=0, columnspan=3)
-            value = ["失败!", self.userName]
+            value = ["成功!", self.userName, self.raceNum]
             tree.insert("", "end", text=self.IMEICode, values=value)
             with open("失败.txt", "a+") as f:
                 f.write(self.IMEICode + "\n")
-            print("失败")
+            # print("失败")
 
 
 def selectPath():
@@ -154,6 +167,7 @@ def printPath():
         aipaoer.check_imeicode()
         aipaoer.get_info()
         aipaoer.get_runId()
+        aipaoer.get_RaceNum()
         aipaoer.upload_record()
         # pretty_print(str(aipaoer))
     # print(path_all)
@@ -197,18 +211,20 @@ def main():
     Label(main_box, text="By:信息安全实验室 作者:PWND0U ").grid(row=3, column=0, columnspan=2)
     Label(main_box, text="1.0").grid(row=3, column=2)
     win_table.title("结果：失败请查看当前目录底下(失败.txt) By:信息安全实验室 作者:PWND0U")  # #窗口标题
-    win_table.geometry("400x230")  # #窗口位置500后面是字母x
+    win_table.geometry("500x230")  # #窗口位置500后面是字母x
     win_table.resizable(width=False, height=False)
     '''
     表格
     '''
     global tree
     tree = ttk.Treeview(win_table)  # #创建表格对象
-    tree["columns"] = ("Status", "备注")  # #定义列
+    tree["columns"] = ("Status", "姓名", "次数")  # #定义列
     tree.column("Status", width=100)
-    tree.column("备注", width=100)
+    tree.column("姓名", width=100)
+    tree.column("次数", width=100)
     tree.heading("Status", text="Status")
-    tree.heading("备注", text="备注")
+    tree.heading("姓名", text="姓名")
+    tree.heading("次数", text="次数")
     tree.pack()
     os.remove("tmp.ico")
     main_box.mainloop()
