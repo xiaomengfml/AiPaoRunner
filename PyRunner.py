@@ -1,10 +1,12 @@
 '''
     Author:PWND0U
-    Ver:1.2
+    Ver:1.3
 '''
 from tkinter import *
+import tkinter.messagebox
 import tkinter.filedialog
 import json
+import time
 from random import randint, uniform
 from tkinter import ttk
 import requests
@@ -30,11 +32,14 @@ class Aipaoer(object):
         self.schoolName = ""
         self.token = ""
         self.runId = ""
+        self.LastTime = ""
+        self.LastTimeRest = []
         self.distance = 2400
         self.minSpeed = 2.0
         self.maxSpeed = 3.0
         self.shixiao = False
         self.raceNum = 0
+        self.rest = []
 
     def __str__(self):
         return str(self.__dict__).replace("\'", "\"")
@@ -90,37 +95,65 @@ class Aipaoer(object):
         rsp = requests.get(url, headers=headers)
         try:
             if rsp.json()["Success"]:
-                self.raceNum = rsp.json()["RaceNums"]
+                # 可根据自己需要进行获取
+                # RaceNums：长跑次数
+                # RaceMNums：晨跑次数
+                # AllCount：总有效次数
+                self.raceNum = rsp.json()["AllCount"]
+                self.rest.append(self.raceNum)
         except KeyError:
+            pass
+        tree.insert("", "end", text=self.IMEICode, values=self.rest)
+
+    def get_LateTime(self):
+        token = self.token
+        userId = self.userId
+        url = "http://client3.aipao.me/api/{token}/QM_Runs/getResultsofValidByUser?UserId={userId}&pageIndex=1&pageSize=10" \
+            .format(token=token, userId=userId)
+        headers = {"version": "2.40"}
+        rsp = requests.get(url, headers=headers)
+        try:
+            if rsp.json()["Success"]:
+                self.LastTime = rsp.json()["listValue"][0]["ResultDate"]
+                self.LastTimeRest.append(int(self.LastTime.split("年")[0]))
+                self.LastTimeRest.append(int(self.LastTime.split("年")[1].split("月")[0]))
+                self.LastTimeRest.append(int(self.LastTime.split("年")[1].split("月")[1].split("日")[0]))
+            else:
+                self.LastTimeRest = [9999, 9999, 9999]
+        except KeyError:
+            self.LastTimeRest = [9999, 9999, 9999]
             pass
 
     def upload_record(self):
-        my_speed = round(uniform(self.minSpeed + 0.3, self.maxSpeed - 0.5), 2)
-        my_distance = self.distance + randint(1, 5)
-        my_costTime = int(my_distance // my_speed)
-        my_step = randint(1555, 2222)
-        print(my_speed, my_distance, my_costTime, my_step)
-        myParams = {
-            "token": self.token,
-            "runId": self.runId,
-            "costTime": encrypt(my_costTime),
-            "distance": encrypt(my_distance),
-            "step": encrypt(my_step)}
-        url = "http://client3.aipao.me/api/{token}/QM_Runs/ES?" \
-              "S1={runId}&S4={costTime}&S5={distance}&S6=A0A2A1A3A0&S7=1&S8=xfvdmyirsg&S9={step}".format(**myParams)
-        rsp = requests.get(url)
-        try:
-            if rsp.json()["Success"]:
-                # Label(main_box, text=str(self.IMEICode+"：" + self.userName+"：" + "成功!")).grid(row=rowIndex, column=0, columnspan=3)
-                value = ["成功!", self.userName, self.raceNum]
-                tree.insert("", "end", text=self.IMEICode, values=value)
-                # print(self.userName + ": 成功!")
-        except KeyError:
-            # Label(main_box, text=str(self.IMEICode + "：失败")).grid(row=rowIndex, column=0, columnspan=3)
-            value = ["失败!", self.userName, self.raceNum]
-            tree.insert("", "end", text=self.IMEICode, values=value)
-            with open("失败.txt", "a+") as f:
-                f.write(self.IMEICode + "\n")
+        # 判断是否需要跑步
+        if self.LastTimeRest[0]==time.localtime()[0] and self.LastTimeRest[1]==time.localtime()[1] and self.LastTimeRest[2]==time.localtime()[2]:
+            self.rest = ["今日已经跑过了，请勿重复提交", self.userName]
+            pass
+        else:
+            my_speed = round(uniform(self.minSpeed + 0.3, self.maxSpeed - 0.5), 2)
+            my_distance = self.distance + randint(1, 5)
+            my_costTime = int(my_distance // my_speed)
+            my_step = randint(1555, 2222)
+            # print(my_speed, my_distance, my_costTime, my_step)
+            myParams = {
+                "token": self.token,
+                "runId": self.runId,
+                "costTime": encrypt(my_costTime),
+                "distance": encrypt(my_distance),
+                "step": encrypt(my_step)}
+            url = "http://client3.aipao.me/api/{token}/QM_Runs/ES?" \
+                  "S1={runId}&S4={costTime}&S5={distance}&S6=A0A2A1A3A0&S7=1&S8=xfvdmyirsg&S9={step}".format(**myParams)
+            rsp = requests.get(url)
+            try:
+                if rsp.json()["Success"]:
+                    # Label(main_box, text=str(self.IMEICode+"：" + self.userName+"：" + "成功!")).grid(row=rowIndex, column=0, columnspan=3)
+                    self.rest = ["成功!", self.userName]
+                    # print(self.userName + ": 成功!")
+            except KeyError:
+                # Label(main_box, text=str(self.IMEICode + "：失败")).grid(row=rowIndex, column=0, columnspan=3)
+                self.rest = ["失败!", self.userName]
+                with open("失败.txt", "a+") as f:
+                    f.write(self.IMEICode + "\n")
             # print("失败")
 
 
@@ -132,8 +165,6 @@ def selectPath():
     # 注意：\\转义后为\，所以\\\\转义后为\\
     # path_ = path_.replace("/", "\\\\")
     # path设置path_的值
-    global path_all
-    path_all = ""
     path_all = path_
     path.set(path_)
 
@@ -154,23 +185,31 @@ def printPath():
                     imeicodes.append(IMEICode[:32])
             fp.close()
         else:
-            print("请选择任意一种方式运行程序")
+            tkinter.messagebox.showinfo('提示', '请选择任何一种方式进行程序执行')
+            return
         print("读入 IMEICode完成，共 {}".format(len(IMEICodes)))
         print(imeicodes)
     if not imeicodes:
         return
-    for IMEICode in imeicodes:
-        if IMEICode[0] == "#":
-            print("跳过：" + IMEICode)
-            continue
-        aipaoer = Aipaoer(IMEICode)
-        aipaoer.check_imeicode()
-        aipaoer.get_info()
-        aipaoer.get_runId()
-        aipaoer.get_RaceNum()
-        aipaoer.upload_record()
-        # pretty_print(str(aipaoer))
-    # print(path_all)
+    H = time.localtime().tm_hour
+    # 判断是否在有效时间段内跑步，不是的话无效
+    if ((H >= 6 and H < 8) or (H >= 17 and H < 23)):
+        for IMEICode in imeicodes:
+                if IMEICode[0] == "#":
+                    print("跳过：" + IMEICode)
+                    continue
+                aipaoer = Aipaoer(IMEICode)
+                aipaoer.check_imeicode()
+                aipaoer.get_info()
+                aipaoer.get_runId()
+                aipaoer.get_LateTime()
+                aipaoer.upload_record()
+                aipaoer.get_RaceNum()
+                # pretty_print(str(aipaoer))
+            # print(path_all)
+    else:
+        tkinter.messagebox.showinfo('提示', '不在有效时间段内！！！')
+        return
 
 
 def main():
@@ -192,6 +231,8 @@ def main():
     main_box.resizable(width=False, height=True)
     # 变量path
     global path
+    global path_all
+    path_all = ""
     path = StringVar()
     # IMCode
     global IMCode
@@ -218,13 +259,13 @@ def main():
     '''
     global tree
     tree = ttk.Treeview(win_table)  # #创建表格对象
-    tree["columns"] = ("Status", "姓名", "次数")  # #定义列
+    tree["columns"] = ("Status", "姓名", "有效次数")  # #定义列
     tree.column("Status", width=100)
     tree.column("姓名", width=100)
-    tree.column("次数", width=100)
+    tree.column("有效次数", width=100)
     tree.heading("Status", text="Status")
     tree.heading("姓名", text="姓名")
-    tree.heading("次数", text="次数")
+    tree.heading("有效次数", text="有效次数")
     tree.pack()
     os.remove("tmp.ico")
     main_box.mainloop()
