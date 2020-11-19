@@ -122,13 +122,11 @@ class Aipaoer(object):
                 self.LastTimeRest = [9999, 9999, 9999]
         except KeyError:
             self.LastTimeRest = [9999, 9999, 9999]
-            pass
 
     def upload_record(self):
         # 判断是否需要跑步
         if self.LastTimeRest[0]==time.localtime()[0] and self.LastTimeRest[1]==time.localtime()[1] and self.LastTimeRest[2]==time.localtime()[2]:
             self.rest = ["今日已经跑过了，请勿重复提交", self.userName]
-            pass
         else:
             my_speed = round(uniform(self.minSpeed + 0.3, self.maxSpeed - 0.5), 2)
             my_distance = self.distance + randint(1, 5)
@@ -160,12 +158,10 @@ class Aipaoer(object):
 def selectPath():
     # 选择文件path_接收文件地址
     path_ = tkinter.filedialog.askopenfilename()
-
     # 通过replace函数替换绝对文件地址中的/来使文件可被程序读取
     # 注意：\\转义后为\，所以\\\\转义后为\\
     # path_ = path_.replace("/", "\\\\")
     # path设置path_的值
-    path_all = path_
     path.set(path_)
 
 
@@ -177,8 +173,8 @@ def printPath():
     IMEICodes = []
     if imeicodes[0] == '':
         imeicodes.pop()
-        if path_all != "":
-            with open(path_all, "rb") as fp:
+        if path.get() != "":
+            with open(path.get(), "rb") as fp:
                 IMEICodes = fp.readlines()
                 for IMEICode in IMEICodes:
                     IMEICode = IMEICode.decode("utf8")
@@ -193,7 +189,7 @@ def printPath():
         return
     H = time.localtime().tm_hour
     # 判断是否在有效时间段内跑步，不是的话无效
-    if ((H >= 6 and H < 8) or (H >= 17 and H < 23)):
+    if ((H >= 6 and H < 8) or (H >= 12 and H < 23)):
         for IMEICode in imeicodes:
                 if IMEICode[0] == "#":
                     print("跳过：" + IMEICode)
@@ -231,8 +227,6 @@ def main():
     main_box.resizable(width=False, height=True)
     # 变量path
     global path
-    global path_all
-    path_all = ""
     path = StringVar()
     # IMCode
     global IMCode
